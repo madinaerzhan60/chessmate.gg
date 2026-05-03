@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CHECKMATE.GG — AI-Powered Chess Arena</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@300;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root{
+      --bg:#060606; --red:#ff1a00; --red-strong:#ff2200; --muted:rgba(255,255,255,0.06);
+      --glass: rgba(10,10,10,0.45);
+      --font-head: 'Orbitron', sans-serif; --font-body: 'Inter', sans-serif; --mono: 'JetBrains Mono', monospace;
+    }
+    html,body{height:100%;}
+    body{margin:0;background:var(--bg);color:#ddd;font-family:var(--font-body);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    /* NAVBAR */
+    .navbar{position:fixed;top:0;left:0;right:0;height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;z-index:60;backdrop-filter: blur(8px);background:linear-gradient(180deg, rgba(6,6,6,0.6), rgba(6,6,6,0.25));border-bottom:1px solid rgba(255,255,255,0.03)}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:700;color:#fff}
+    .logo .icon{width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 25% 25%, #ff5a3a, var(--red));box-shadow:0 6px 18px rgba(255,26,0,0.12),0 0 14px rgba(255,26,0,0.08);font-family:var(--font-head);}
+    .navlinks{display:flex;gap:18px;align-items:center;position:absolute;left:50%;transform:translateX(-50%)}
+    .navlinks a{padding:8px 14px;border-radius:999px;color:rgba(255,255,255,0.7)}
+    .navlinks a.active{background:linear-gradient(90deg, rgba(255,26,0,0.14), rgba(255,26,0,0.06));box-shadow:0 6px 20px rgba(255,26,0,0.06);color:var(--red);border:1px solid rgba(255,26,0,0.08)}
+    .cta{display:flex;gap:10px}
+    .btn{padding:10px 16px;border-radius:10px;font-weight:600;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff;cursor:pointer}
+    .btn.primary{background:linear-gradient(180deg,var(--red),#ff4a1a);box-shadow:0 8px 30px rgba(255,26,0,0.18);border:none}
+    .btn.ghost{border:1px solid rgba(255,255,255,0.06);background:transparent}
+    .btnlink{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+
+    /* HERO */
+    .hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;padding:120px 6vw 80px;align-items:center;position:relative;overflow:hidden}
+    .left{max-width:720px}
+    .badge{display:inline-flex;gap:10px;align-items:center;padding:6px 10px;border-radius:999px;background:rgba(255,26,0,0.06);color:var(--red);font-weight:600;font-size:13px;margin-bottom:18px}
+    .pulse-dot{width:10px;height:10px;border-radius:50%;background:var(--red);box-shadow:0 0 8px rgba(255,26,0,0.6);animation:pulse 1.5s infinite}
+    @keyframes pulse{0%{transform:scale(.9);opacity:.9}50%{transform:scale(1.25);opacity:1}100%{transform:scale(.9);opacity:.9}}
+    h1{font-family:var(--font-head);font-weight:300;font-size:46px;line-height:0.95;margin:8px 0}
+    h1 .heavy{font-weight:900;display:block}
+    h1 .brand{display:block;background:linear-gradient(90deg,#fff,#ff7a3a);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:900}
+    .sub{color:rgba(255,255,255,0.64);margin-top:18px;font-size:16px}
+    .hero-actions{margin-top:22px;display:flex;gap:12px}
+    .stats{display:flex;gap:14px;margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.03);font-size:14px}
+    .stat{padding-right:14px;border-right:1px solid rgba(255,255,255,0.03)}
+
+    /* RIGHT: canvas & cards */
+    .canvas-wrap{position:relative;width:100%;height:70vh;min-height:520px;border-radius:18px;overflow:visible}
+    #bg-glow{position:absolute;right:0;top:0;width:80%;height:120%;pointer-events:none;background:radial-gradient(ellipse at center, rgba(255,26,0,0.32), transparent 65%);filter:blur(40px);animation:glowPulse 4s ease-in-out infinite;transform:translateX(10%)}
+    @keyframes glowPulse{0%{opacity:.9}50%{opacity:.6}100%{opacity:.9}}
+    canvas{width:100%;height:100%;display:block}
+    .card{position:absolute;background:linear-gradient(180deg, rgba(15,10,10,0.7), rgba(6,6,6,0.6));border-radius:14px;padding:12px;border:1px solid rgba(255,255,255,0.04);backdrop-filter:blur(6px);color:#fff}
+    .card .badge{background:transparent;color:#fff;padding:4px 8px;border-radius:10px;font-size:11px}
+    .card1{top:18px;right:28px;width:170px}
+    .card2{right:28px;bottom:24px;width:270px}
+    .corner-rail{position:absolute;right:10px;top:60px;display:flex;flex-direction:column;gap:6px;transform:rotate(90deg);transform-origin:top right;color:rgba(255,255,255,0.5);font-weight:700}
+    .routes{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:20px 0 0}
+    .route-pill{padding:8px 12px;border-radius:999px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:rgba(255,255,255,0.75);text-decoration:none;font-size:13px}
+    .route-pill:hover{border-color:rgba(255,26,0,0.25);color:#fff;box-shadow:0 0 18px rgba(255,26,0,0.12)}
+
+    /* Marquee */
+    .marquee{width:100%;overflow:hidden;padding:12px 0;border-top:1px solid rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.02);margin:26px 0}
+    .marquee .track{display:inline-block;white-space:nowrap;animation:marq 18s linear infinite}
+    .marquee .item{display:inline-block;padding:0 26px;color:rgba(255,255,255,0.6)}
+    @keyframes marq{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+    /* Sections */
+    section{padding:84px 6vw}
+    .about h2{font-size:48px;color:#fff;line-height:1.02}
+    .about h2 .accent{color:var(--red)}
+    .two-cards{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+    .feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .feature{background:linear-gradient(180deg, rgba(10,8,8,0.6), rgba(6,6,6,0.5));padding:22px;border-radius:18px;border:1px solid rgba(255,255,255,0.04)}
+
+    /* Pricing */
+    .pricing{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .price-card{border-radius:18px;padding:22px;background:linear-gradient(180deg, rgba(8,8,8,0.6), rgba(6,6,6,0.5));border:1px solid rgba(255,255,255,0.04)}
+    .pro{background:linear-gradient(180deg, rgba(255,26,0,0.09), rgba(20,10,10,0.6));box-shadow:0 10px 40px rgba(255,26,0,0.06);border:1px solid rgba(255,26,0,0.12)}
+
+    /* Footer CTA */
+    .footer-cta{display:flex;flex-direction:column;align-items:center;padding:64px 6vw;position:relative}
+    .footer-cta h2{font-size:44px}
+
+    /* fixed live ticker */
+    .live-ticker{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:var(--glass);padding:10px 18px;border-radius:999px;border:1px solid rgba(255,255,255,0.04);display:flex;gap:12px;align-items:center;z-index:80}
+    .live-ticker .dot{width:10px;height:10px;border-radius:50%;background:var(--red);box-shadow:0 6px 20px rgba(255,26,0,0.12);animation:tickPulse 2s infinite}
+    @keyframes tickPulse{0%{transform:scale(.9)}50%{transform:scale(1.15)}100%{transform:scale(.9)}}
+
+    /* grid overlay */
+    .grid-overlay{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,26,0,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,26,0,0.02) 1px, transparent 1px);background-size:64px 64px}
+
+    /* reveal animation */
+    .reveal{opacity:0;transform:translateY(30px);transition:all .75s cubic-bezier(.2,.9,.2,1);will-change:transform,opacity}
+    .reveal.show{opacity:1;transform:translateY(0)}
+
+    /* responsive */
+    @media (max-width:980px){.hero{grid-template-columns:1fr;padding:120px 4vw}.canvas-wrap{height:48vh;min-height:380px}.navlinks{display:none}}
+    @media (max-width:640px){h1{font-size:34px}.two-cards{grid-template-columns:1fr}.feature-grid{grid-template-columns:1fr 1fr}.pricing{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <script>
+    const APP_ORIGIN = (location.port === '5500' || location.port === '5501') ? 'http://localhost:3000' : location.origin;
+    const appUrl = (path) => `${APP_ORIGIN}${path}`;
+  </script>
+  <div class="navbar">
+    <div class="logo"><div class="icon">♚</div><div>CHECKMATE.GG</div></div>
+    <nav class="navlinks">
+      <a class="active" data-link="/">Home</a>
+      <a data-link="/play">Play</a>
+      <a data-link="/puzzles">Puzzles</a>
+      <a data-link="/leaderboard">Leaderboard</a>
+      <a data-link="/tournaments">Tournaments</a>
+      <a data-link="/clans">Clans</a>
+    </nav>
+    <div class="cta"><button class="btn primary" data-link="/play">Play Now →</button><button class="btn ghost" data-link="/leaderboard">Watch Demo ▶</button></div>
+  </div>
+
+  <main>
+    <section class="hero">
+      <div class="left">
+        <div class="badge"><span class="pulse-dot"></span> AI-POWERED CHESS PLATFORM</div>
+        <h1 class="reveal"><span>Your Chess Battle</span><span class="heavy">Arena Awaits</span><span class="brand">CHECKMATE.GG</span></h1>
+        <p class="sub reveal">From casual games to AI-coached ranked tournaments — real-time multiplayer, Groq AI post-game analysis, and a chess community built for winners.</p>
+        <div class="hero-actions reveal"><button class="btn primary" data-link="/play">Play Now →</button><button class="btn ghost" data-link="/leaderboard">Watch Demo ▶</button></div>
+        <div class="stats reveal" style="margin-top:26px">
+          <div class="stat"><strong>14K+</strong> Active Players</div>
+          <div class="stat"><strong>96%</strong> Return Rate</div>
+          <div class="stat"><strong>3.8M+</strong> Games Played</div>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <div id="bg-glow"></div>
+        <div id="three-container" style="position:relative;width:100%;height:100%;"></div>
+        <div class="card card1 reveal">
+          <div class="badge">RANKING / 01</div>
+          <div style="font-family:var(--font-head);font-size:28px;margin-top:8px">2,847</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:6px">Top ELO in Almaty</div>
+        </div>
+        <div class="card card2 reveal">
+          <div class="badge">AI COACH ACTIVE</div>
+          <div style="color:var(--red-strong);font-weight:800;font-size:18px;margin-top:6px">94.2% accuracy</div>
+          <div style="font-size:13px;margin-top:8px;color:rgba(255,255,255,0.85)">"You missed forced mate in 3 on move 23"</div>
+          <button class="btn primary" style="margin-top:10px;font-size:13px" data-link="/analyze/demo">Get Analysis ↗</button>
+        </div>
+        <div class="corner-rail">MULTIPLAYER / AI COACH / TOURNAMENTS</div>
+        <div class="grid-overlay"></div>
+      </div>
+    </section>
+
+    <div class="routes reveal">
+      <a class="route-pill" data-link="/play/ai">vs AI</a>
+      <a class="route-pill" data-link="/play/local">Local 2P</a>
+      <a class="route-pill" data-link="/play/demo-room">Online Room</a>
+      <a class="route-pill" data-link="/leaderboard">Leaderboard</a>
+      <a class="route-pill" data-link="/puzzles">Puzzles</a>
+      <a class="route-pill" data-link="/tournaments">Tournaments</a>
+      <a class="route-pill" data-link="/clans">Clans</a>
+      <a class="route-pill" data-link="/upgrade">Upgrade</a>
+    </div>
+
+    <div class="marquee"><div class="track" style="display:inline-block">
+      <span class="item">Stockfish AI ♟</span>
+      <span class="item">Groq LLaMA 3.3 ♟</span>
+      <span class="item">Live Tournaments ♟</span>
+      <span class="item">Elo Rankings ♟</span>
+      <span class="item">Daily Puzzles ♟</span>
+      <span class="item">Chess Passport ♟</span>
+      <span class="item">Clan Wars ♟</span>
+      <span class="item">Real-time Multiplayer ♟</span>
+      <span class="item">Stockfish AI ♟</span>
+      <span class="item">Groq LLaMA 3.3 ♟</span>
+    </div></div>
+
+    <section class="about reveal">
+      <h2>We <span class="accent">built</span> the chess platform you <span class="accent">actually deserved</span> — combining Groq AI coaching, real-time WebSocket battles, and <span class="accent">deep performance stats</span> to make every game matter.</h2>
+    </section>
+
+    <section>
+      <div class="two-cards reveal">
+        <div class="feature">
+          <h3 style="font-family:var(--font-head)">Play from Anywhere, Anytime</h3>
+          <p style="color:rgba(255,255,255,0.6)">Start instant matches across devices with robust matchmaking and shareable room links.</p>
+          <button class="btn primary" style="margin-top:12px" data-link="/play">Start a Game</button>
+        </div>
+        <div class="feature">
+          <div style="font-family:var(--font-head);font-size:40px;color:var(--red)">4,200+</div>
+          <div style="color:var(--red);">★★★★★</div>
+          <div style="margin-top:10px;color:rgba(255,255,255,0.8)">"The AI coach found a forced mate I missed for 20 moves. Insane." — Arman K., Pro User</div>
+          <button class="btn ghost" style="margin-top:12px" data-link="/profile/neonknight">View Profile</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="reveal">
+      <div class="feature-grid">
+        <a class="feature" data-link="/analyze/demo" style="display:block;text-decoration:none;color:inherit"><strong>01 🤖 Groq AI Coach</strong><div style="color:rgba(255,255,255,0.66)">Post-game analysis in style of Tal, Karpov, or Carlsen</div></a>
+        <a class="feature" data-link="/play" style="display:block;text-decoration:none;color:inherit"><strong>02 ⚡ Real-time Battles</strong><div style="color:rgba(255,255,255,0.66)">WebSocket multiplayer with shareable room links</div></a>
+        <a class="feature" data-link="/puzzles" style="display:block;text-decoration:none;color:inherit"><strong>03 🧩 Daily Puzzles</strong><div style="color:rgba(255,255,255,0.66)">Streak rewards and 15+ puzzle themes</div></a>
+        <a class="feature" data-link="/profile/neonknight" style="display:block;text-decoration:none;color:inherit"><strong>04 📊 Chess Passport</strong><div style="color:rgba(255,255,255,0.66)">Move heatmaps, opening stats, rating history</div></a>
+        <a class="feature" data-link="/tournaments" style="display:block;text-decoration:none;color:inherit"><strong>05 🏆 Tournaments</strong><div style="color:rgba(255,255,255,0.66)">Swiss and round-robin with live standings</div></a>
+        <a class="feature" data-link="/clans" style="display:block;text-decoration:none;color:inherit"><strong>06 ⚔️ Clan Wars</strong><div style="color:rgba(255,255,255,0.66)">City leaderboards and weekly clan war events</div></a>
+      </div>
+    </section>
+
+    <section class="reveal">
+      <div class="pricing">
+        <div class="price-card">
+          <h3>FREE</h3>
+          <div style="font-size:20px;font-weight:800">$0<span style="font-size:12px;font-weight:400">/forever</span></div>
+          <ul>
+            <li>Unlimited vs AI (Levels 1–4)</li>
+            <li>10 puzzles/day</li>
+            <li>Basic profile</li>
+            <li>1 AI analysis/day</li>
+          </ul>
+        </div>
+        <div class="price-card pro">
+          <h3>PRO</h3>
+          <div style="font-size:20px;font-weight:800">$7.99<span style="font-size:12px;font-weight:400">/month</span></div>
+          <ul>
+            <li>Everything in Free</li>
+            <li>Unlimited multiplayer</li>
+            <li>Unlimited Groq AI analysis</li>
+            <li>Voice coach & exclusive themes</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer-cta reveal">
+      <h2><span style="color:var(--red);text-shadow:0 6px 22px rgba(255,26,0,0.18)">Ready to Checkmate the Competition?</span></h2>
+      <div style="margin-top:18px"><button class="btn primary" data-link="/play">Play Now</button><button class="btn ghost" style="margin-left:8px" data-link="/upgrade">Learn More</button></div>
+    </div>
+  </main>
+
+  <div class="live-ticker" id="liveTicker"><div class="dot"></div><div id="tickerText">2,341 players online · 847 games in progress · 12 tournaments today</div></div>
+
+  <script>
+  document.querySelectorAll('[data-link]').forEach((element) => {
+    const target = appUrl(element.getAttribute('data-link'));
+    if (element.tagName === 'A') {
+      element.href = target;
+      element.rel = 'noreferrer';
+    } else {
+      element.type = 'button';
+      element.addEventListener('click', () => { window.location.href = target; });
+    }
+  });
+
+  // reveal on scroll
+  const io = new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('show');io.unobserve(e.target)}})},{threshold:0.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+  // live ticker dynamic
+  const tickerText = document.getElementById('tickerText');
+  function randVariance(n, pct=0.04){return Math.max(1, Math.round(n*(1 + (Math.random()*2-1)*pct)))}
+  let base = {players:2341,games:847,tours:12};
+  setInterval(()=>{base.players = randVariance(base.players,0.03); base.games=randVariance(base.games,0.05); base.tours=randVariance(base.tours,0.06); tickerText.textContent = `${base.players} players online · ${base.games} games in progress · ${base.tours} tournaments today`},3000);
+
+  // Three.js scene: king model + particles + orbs + mouse parallax
+  (function(){
+    const container = document.getElementById('three-container');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth/container.clientHeight, 0.1, 100);
+    camera.position.set(0,0.6,3.6);
+    const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+    renderer.setPixelRatio(window.devicePixelRatio); renderer.setSize(container.clientWidth, container.clientHeight); container.appendChild(renderer.domElement);
+
+    // lights
+    scene.add(new THREE.AmbientLight(0x110000,1.5));
+    const p1 = new THREE.PointLight(0xff2200,8,12); p1.position.set(2,2,2); scene.add(p1);
+    const p2 = new THREE.PointLight(0xff4400,5,14); p2.position.set(-3,1,1); scene.add(p2);
+    const d = new THREE.DirectionalLight(0xff1100,3); d.position.set(-2,2,-3); scene.add(d);
+
+    // king assembly
+    const mat = new THREE.MeshStandardMaterial({color:0x1a0505,metalness:0.92,roughness:0.15,emissive:0x000000});
+    const emissiveMat = new THREE.MeshStandardMaterial({color:0x1a0505,metalness:0.92,roughness:0.12,emissive:0xff2200,emissiveIntensity:1.2});
+    const king = new THREE.Group();
+    // base
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,0.18,64), mat); base.position.y = -0.95; king.add(base);
+    const baseRing = new THREE.Mesh(new THREE.TorusGeometry(1.02,0.06,16,100), emissiveMat); baseRing.rotation.x = Math.PI/2; baseRing.position.y = -0.85; king.add(baseRing);
+    // lower body
+    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.05,0.6,48), mat); lower.position.y = -0.5; king.add(lower);
+    // mid shaft
+    const mid = new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.7,1.0,48), mat); mid.position.y = 0.0; king.add(mid);
+    // decorative rings
+    const ring1 = new THREE.Mesh(new THREE.TorusGeometry(0.72,0.03,12,100), emissiveMat); ring1.rotation.x = Math.PI/2; ring1.position.y = -0.05; king.add(ring1);
+    const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.5,0.025,12,100), emissiveMat); ring2.rotation.x = Math.PI/2; ring2.position.y = 0.35; king.add(ring2);
+    // head sphere
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.36,32,32), mat); head.position.y = 0.85; king.add(head);
+    // crown band
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,0.18,48), mat); crown.position.y = 1.08; king.add(crown);
+    // spikes
+    const spikes = new THREE.Group();
+    for(let i=0;i<5;i++){const s = new THREE.Mesh(new THREE.ConeGeometry(0.12,0.4,16), emissiveMat); const a=i*(Math.PI*2/5); s.position.set(Math.cos(a)*0.6,1.28,Math.sin(a)*0.6); s.rotation.y = -a; s.rotation.x = Math.PI; spikes.add(s)}
+    king.add(spikes);
+    // cross
+    const cross = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.06,0.06), emissiveMat); cross.position.y = 1.6; king.add(cross);
+    const cross2 = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.06,0.22), emissiveMat); cross2.position.y = 1.6; king.add(cross2);
+    const crossGlow = new THREE.Mesh(new THREE.SphereGeometry(0.06,16,16), new THREE.MeshStandardMaterial({emissive:0xff2200,emissiveIntensity:1.5,color:0x220000,transparent:true,opacity:0.95})); crossGlow.position.y = 1.6; king.add(crossGlow);
+
+    king.scale.set(0.9,0.9,0.9);
+    scene.add(king);
+
+    // orbiting small orbs
+    const orbitGroup = new THREE.Group(); scene.add(orbitGroup);
+    const orbMat = new THREE.MeshStandardMaterial({emissive:0xff2200,metalness:0.1,roughness:0.05,color:0x330000});
+    const orbs=[]; for(let i=0;i<6;i++){const o=new THREE.Mesh(new THREE.SphereGeometry(0.035,12,12),orbMat); orbitGroup.add(o); orbs.push(o)}
+
+    // particles
+    const particleCount = 120; const positions = new Float32Array(particleCount*3);
+    for(let i=0;i<particleCount;i++){positions[i*3]=(Math.random()*6-3);positions[i*3+1]=(Math.random()*2-1);positions[i*3+2]=(Math.random()*6-3)}
+    const pgeo = new THREE.BufferGeometry(); pgeo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+    const pm = new THREE.PointsMaterial({color:0xff2200,size:0.025,transparent:true,opacity:0.7}); const points = new THREE.Points(pgeo,pm); scene.add(points);
+
+    // animation
+    let t0 = 0;
+    function animate(t){t*=0.001; const dt = t - t0; t0 = t;
+      // float
+      king.position.y = Math.sin(t*0.8)*0.15;
+      king.rotation.y += 0.006;
+      // crown pulse
+      const pulse = 1 + Math.sin(t*2)*0.5; emissiveMat.emissiveIntensity = pulse; crossGlow.material.emissiveIntensity = 1.2 + Math.sin(t*2)*0.6;
+      // orbs orbit
+      for(let i=0;i<orbs.length;i++){const a = t*0.7 + i*(Math.PI*2/orbs.length); orbs[i].position.set(Math.cos(a)*0.9,0.6+Math.sin(a*1.1)*0.12,Math.sin(a)*0.9)}
+      // rotate particles slowly
+      points.rotation.y += 0.0006;
+      // camera parallax handled via targetCameraX/Y
+      camera.position.x += (targetX - camera.position.x) * 0.06; camera.position.y += (targetY - camera.position.y) * 0.06;
+      camera.lookAt(0,0.3,0);
+      renderer.render(scene,camera);
+      requestAnimationFrame(animate);
+    }
+
+    // mouse parallax
+    let targetX = 0, targetY = 0;
+    window.addEventListener('mousemove',(e)=>{const rect = container.getBoundingClientRect(); const mx = (e.clientX - rect.left)/rect.width - 0.5; const my = (e.clientY - rect.top)/rect.height - 0.5; targetX = mx*0.6; targetY = -my*0.6 + 0.3});
+
+    // resize
+    window.addEventListener('resize', ()=>{camera.aspect = container.clientWidth/container.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(container.clientWidth, container.clientHeight)});
+
+    // init
+    animate(0);
+  })();
+  </script>
+</body>
+</html>
