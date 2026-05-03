@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String           @id @default(cuid())
+  username      String           @unique
+  email         String           @unique
+  passwordHash  String
+  avatar        String?
+  rating        Int              @default(1200)
+  country       String?
+  city          String?
+  bio           String?
+  createdAt     DateTime         @default(now())
+  isPro         Boolean          @default(false)
+  dailyStreak   Int              @default(0)
+  lastPlayedAt  DateTime?
+  clanId        String?
+  clan          Clan?            @relation(fields: [clanId], references: [id])
+  games         Game[]
+  puzzleResults PuzzleResult[]
+  achievements  UserAchievement[]
+}
+
+model Game {
+  id          String        @id @default(cuid())
+  whiteId     String
+  blackId     String?
+  pgn         String
+  result      String
+  timeControl String
+  mode        String
+  aiLevel     Int?
+  accuracy    Float?
+  createdAt   DateTime      @default(now())
+  white       User          @relation(fields: [whiteId], references: [id])
+  analysis    GameAnalysis?
+}
+
+model GameAnalysis {
+  id           String   @id @default(cuid())
+  gameId       String   @unique
+  game         Game     @relation(fields: [gameId], references: [id])
+  blunders     Int
+  mistakes     Int
+  inaccuracies Int
+  bestMoves    Int
+  summary      String
+  keyMoments   Json
+  coachStyle   String
+}
+
+model Puzzle {
+  id         String   @id @default(cuid())
+  fen        String
+  solution   String[]
+  theme      String
+  difficulty Int
+  rating     Int
+  date       DateTime?
+}
+
+model Clan {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  tag         String   @unique @db.VarChar(5)
+  description String?
+  emblem      String?
+  members     User[]
+  createdAt   DateTime @default(now())
+}
+
+model PuzzleResult {
+  id        String   @id @default(cuid())
+  userId    String
+  puzzleId  String
+  solvedAt  DateTime @default(now())
+  timeTaken Int?
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model UserAchievement {
+  id           String   @id @default(cuid())
+  userId       String
+  name         String
+  unlockedAt   DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id])
+}

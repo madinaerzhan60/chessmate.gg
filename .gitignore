@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.local
+.next/
+dist/
+coverage/
+frontend/public/stockfish/
+/.idea
+/.vscode
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
