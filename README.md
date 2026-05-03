@@ -1,31 +1,7 @@
 # CHECKMATE.GG
 
-Full-stack chess platform (MVP scaffold).
+CHECKMATE.GG — это платформа для игры в шахматы и анализа партий.
 
-Core implemented in this commit:
-- Frontend (Next.js 14 + Tailwind + TypeScript): landing, auth, AI game page
-- Backend (Express + Socket.io): basic API routes, Groq analysis service stub
-- Prisma schema for PostgreSQL
-- .env.example files
+Мы собрали full-stack приложение с фронтендом на Next.js, бэкендом на Express и Socket.io, Prisma-схемой и базовой инфраструктурой для авторизации, онлайн-матчей, AI-анализа и игровых режимов.
 
-Run locally (quick start):
-
-1. Backend
-
-```bash
-cd backend
-npm install
-cp .env.example .env
-# set DATABASE_URL, JWT secrets, GROQ_API_KEY, etc.
-npx prisma migrate dev --name init
-npm run dev
-```
-
-2. Frontend
-
-```bash
-cd frontend
-npm install
-cp .env.example .env.local
-npm run dev
-```
+Это решение для игроков, которые хотят не только быстро начать партию, но и разбирать свои ошибки, отслеживать прогресс и играть онлайн без лишней настройки. Проект ценен тем, что объединяет игру, аналитику и социальные механики в одном продукте и задает основу для дальнейшего развития в полноценный шахматный сервис.

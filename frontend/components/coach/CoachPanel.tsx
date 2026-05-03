@@ -13,7 +13,7 @@ interface CoachPanelProps {
 export function CoachPanel({ pgn, style }: CoachPanelProps) {
   const analysisMutation = useMutation({
     mutationFn: async () => {
-      const response = await api.post('/analysis/preview', { pgn, coachStyle: style });
+      const response = await api.post('/analysis/demo', { pgn, coachStyle: style });
       return response.data;
     }
   });

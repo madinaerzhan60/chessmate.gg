@@ -3,19 +3,33 @@
 import { useMemo, useState } from 'react';
 import { Chess, Move } from 'chess.js';
 
+export interface MoveOutcome {
+  move: Move;
+  fen: string;
+  turn: 'w' | 'b';
+  isGameOver: boolean;
+  pgn: string;
+}
+
 export function useChessGame() {
   const [game, setGame] = useState(() => new Chess());
   const [fen, setFen] = useState(game.fen());
   const [history, setHistory] = useState<string[]>([]);
 
-  const makeMove = (from: string, to: string, promotion = 'q') => {
+  const makeMove = (from: string, to: string, promotion = 'q'): MoveOutcome | null => {
     const clone = new Chess(game.fen());
     const move = clone.move({ from, to, promotion }) as Move | null;
     if (!move) return null;
     setGame(clone);
     setFen(clone.fen());
     setHistory(clone.history());
-    return move;
+    return {
+      move,
+      fen: clone.fen(),
+      turn: clone.turn(),
+      isGameOver: clone.isGameOver(),
+      pgn: clone.pgn()
+    };
   };
 
   const legalMoves = (square: string) => game.moves({ square: square as Move['from'], verbose: true }) as Move[];

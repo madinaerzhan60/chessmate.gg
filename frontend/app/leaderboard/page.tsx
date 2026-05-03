@@ -1,8 +1,12 @@
+"use client";
+
+import { useEffect, useState } from 'react';
 import { NeonCard } from '@/components/ui/NeonCard';
 import { PageFrame } from '@/components/layout/PageFrame';
 import { Award, Flame, Medal, Shield, Star, Trophy, TrendingUp, Users } from 'lucide-react';
+import { api } from '@/lib/api';
 
-const players = [
+const fallbackPlayers = [
   { rank: 1, username: 'NeonKnight', rating: 2489, wl: '124/34' },
   { rank: 2, username: 'TalProtocol', rating: 2430, wl: '110/40' },
   { rank: 3, username: 'EndgameLab', rating: 2391, wl: '93/36' },
@@ -11,6 +15,35 @@ const players = [
 ];
 
 export default function LeaderboardPage() {
+  const [players, setPlayers] = useState(fallbackPlayers);
+
+  useEffect(() => {
+    let mounted = true;
+
+    api
+      .get('/leaderboard')
+      .then((response) => {
+        if (!mounted) return;
+        const livePlayers = (response.data ?? []).map((player: { username: string; rating: number; country?: string }, index: number) => ({
+          rank: index + 1,
+          username: player.username,
+          rating: player.rating,
+          wl: player.country ? player.country : 'Live'
+        }));
+
+        if (livePlayers.length > 0) {
+          setPlayers(livePlayers);
+        }
+      })
+      .catch(() => {
+        if (mounted) setPlayers(fallbackPlayers);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <PageFrame
       eyebrow="LIVE RANKINGS"
