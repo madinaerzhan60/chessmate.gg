@@ -6,6 +6,7 @@ import { NeonCard } from '@/components/ui/NeonCard';
 import { NeonInput } from '@/components/ui/NeonInput';
 import { NeonButton } from '@/components/ui/NeonButton';
 import { api } from '@/lib/api';
+import { PageFrame } from '@/components/layout/PageFrame';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -30,27 +31,32 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="mx-auto max-w-md">
-      <NeonCard>
-        <h1 className="neon-heading text-3xl font-bold">Create Account</h1>
-        <form className="mt-4 space-y-3" onSubmit={onSubmit}>
-          <NeonInput placeholder="Username" value={form.username} onChange={(e) => updateField('username')(e.target.value)} required />
-          <NeonInput type="email" placeholder="Email" value={form.email} onChange={(e) => updateField('email')(e.target.value)} required />
-          <NeonInput
-            type="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={(e) => updateField('password')(e.target.value)}
-            required
-          />
-          <NeonInput placeholder="Country" value={form.country} onChange={(e) => updateField('country')(e.target.value)} />
-          <NeonInput placeholder="City" value={form.city} onChange={(e) => updateField('city')(e.target.value)} />
-          {error ? <p className="text-sm text-[#ff3359]">{error}</p> : null}
-          <NeonButton type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Creating...' : 'Register'}
-          </NeonButton>
-        </form>
-      </NeonCard>
-    </div>
+    <PageFrame
+      eyebrow="JOIN THE ARENA"
+      title="Create Account"
+      description="Register inside a landing-style frame so onboarding feels like part of the same product story."
+    >
+      <div className="mx-auto max-w-md">
+        <NeonCard className="border-white/5 bg-black/35">
+          <form className="mt-4 space-y-3" onSubmit={onSubmit}>
+            <NeonInput placeholder="Username" value={form.username} onChange={(e) => updateField('username')(e.target.value)} required />
+            <NeonInput type="email" placeholder="Email" value={form.email} onChange={(e) => updateField('email')(e.target.value)} required />
+            <NeonInput
+              type="password"
+              placeholder="Password"
+              value={form.password}
+              onChange={(e) => updateField('password')(e.target.value)}
+              required
+            />
+            <NeonInput placeholder="Country" value={form.country} onChange={(e) => updateField('country')(e.target.value)} />
+            <NeonInput placeholder="City" value={form.city} onChange={(e) => updateField('city')(e.target.value)} />
+            {error ? <p className="text-sm text-[#ff3359]">{error}</p> : null}
+            <NeonButton type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Creating...' : 'Register'}
+            </NeonButton>
+          </form>
+        </NeonCard>
+      </div>
+    </PageFrame>
   );
 }

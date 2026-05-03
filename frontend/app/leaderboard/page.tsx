@@ -1,4 +1,5 @@
 import { NeonCard } from '@/components/ui/NeonCard';
+import { PageFrame } from '@/components/layout/PageFrame';
 
 const players = [
   { rank: 1, username: 'NeonKnight', rating: 2489, wl: '124/34' },
@@ -10,9 +11,12 @@ const players = [
 
 export default function LeaderboardPage() {
   return (
-    <div className="space-y-4">
-      <h1 className="neon-heading text-3xl">Leaderboard</h1>
-      <NeonCard>
+    <PageFrame
+      eyebrow="LIVE RANKINGS"
+      title="Leaderboard"
+      description="A compact ranking board styled to match the landing page's glow-heavy visual system."
+    >
+      <NeonCard className="border-white/5 bg-black/35">
         <div className="grid grid-cols-4 border-b border-red-900/30 pb-2 text-xs uppercase text-textSecondary">
           <span>Rank</span>
           <span>Player</span>
@@ -30,6 +34,6 @@ export default function LeaderboardPage() {
           ))}
         </div>
       </NeonCard>
-    </div>
+    </PageFrame>
   );
 }
