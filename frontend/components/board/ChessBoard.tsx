@@ -19,6 +19,7 @@ export function ChessBoard({ aiLevel = 4, onPgnChange }: ChessBoardProps) {
   const { getBestMove, thinking } = useEngine();
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [boardOrientation, setBoardOrientation] = useState<'white' | 'black'>('white');
+  const [moveMessage, setMoveMessage] = useState<string | null>(null);
   const savedGameKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -49,42 +50,54 @@ export function ChessBoard({ aiLevel = 4, onPgnChange }: ChessBoardProps) {
   }, [aiLevel, game, history.length, status.isCheckmate, status.isDraw, status.pgn]);
 
   const onPieceDrop = (sourceSquare: string, targetSquare: string) => {
-    console.log(`[Move] Dropped piece from ${sourceSquare} to ${targetSquare}`);
-    console.log(`[Move] Current FEN before move:`, fen);
     const outcome = makeMove(sourceSquare, targetSquare);
-    console.log('[Move Result]', { success: !!outcome, turn: outcome?.turn, isGameOver: outcome?.isGameOver, aiLevel });
-     if (!outcome) {
-       console.log('[Move] Invalid move - returning false');
-       return false;
-     }
+    if (!outcome) {
+      setMoveMessage('Неверный ход. Выберите другую клетку.');
+      return false;
+    }
+
+    setMoveMessage(null);
     setSelectedSquare(null);
 
     void (async () => {
-      console.log('[AI Check] aiLevel:', aiLevel, 'turn:', outcome.turn, 'isGameOver:', outcome.isGameOver);
       if (aiLevel <= 0 || outcome.turn !== 'b' || outcome.isGameOver) {
-        console.log('[AI Skipped] - condition failed');
         return;
       }
-      console.log('[AI Request] FEN:', outcome.fen);
+      setMoveMessage('Ход ИИ...');
       const bestMove = await getBestMove(outcome.fen);
-      console.log('[AI Response] bestMove:', bestMove);
       if (bestMove) {
-        console.log('[AI Apply] Making move:', bestMove.from, '->', bestMove.to, 'promotion:', bestMove.promotion);
         // Pass outcome.fen to avoid closure issues with stale game state
         const moveResult = makeMove(bestMove.from, bestMove.to, bestMove.promotion, outcome.fen);
-        console.log('[AI Result]', moveResult ? 'SUCCESS' : 'FAILED');
         if (!moveResult) {
-          console.error('Failed to apply AI move on FEN:', outcome.fen);
+          setMoveMessage('ИИ не смог сделать ход. Попробуйте еще раз.');
+          return;
         }
+        setMoveMessage(null);
+        return;
       }
+
+      setMoveMessage('ИИ не нашел ход в этой позиции. Попробуйте другой ход.');
     })();
+
     return true;
   };
 
   const handleSquareClick = (square: string) => {
+    if (thinking) return;
+
+    const piece = game.get(square as Square);
+    const activeColor = status.turn;
+
     if (selectedSquare) {
       if (selectedSquare === square) {
         setSelectedSquare(null);
+        setMoveMessage(null);
+        return;
+      }
+
+      if (piece && piece.color === activeColor) {
+        setSelectedSquare(square);
+        setMoveMessage(null);
         return;
       }
 
@@ -92,9 +105,24 @@ export function ChessBoard({ aiLevel = 4, onPgnChange }: ChessBoardProps) {
       if (legalTarget) {
         const moved = onPieceDrop(selectedSquare, square);
         if (moved) return;
+      } else {
+        setMoveMessage('Неверный ход. Выберите подсвеченную клетку.');
       }
+
+      return;
     }
 
+    if (!piece) {
+      setMoveMessage('Выберите свою фигуру.');
+      return;
+    }
+
+    if (piece.color !== activeColor) {
+      setMoveMessage(activeColor === 'w' ? 'Сейчас ход белых.' : 'Сейчас ход черных.');
+      return;
+    }
+
+    setMoveMessage(null);
     setSelectedSquare(square);
   };
 
@@ -130,9 +158,10 @@ export function ChessBoard({ aiLevel = 4, onPgnChange }: ChessBoardProps) {
             customLightSquareStyle={{ backgroundColor: '#6a262c' }}
             customSquareStyles={customSquareStyles}
             animationDuration={150}
-            arePiecesDraggable
+            arePiecesDraggable={false}
           />
-          {thinking ? <p className="mt-2 text-sm text-[#ff3359]">🔴 Engine thinking...</p> : null}
+          {thinking ? <p className="mt-2 text-sm text-[#ff3359]">Ход ИИ...</p> : null}
+          {moveMessage ? <p className="mt-2 text-sm text-[#ff3359]">{moveMessage}</p> : null}
           {status.isCheck ? <p className="mt-2 text-sm text-[#ff3359]">King is in check.</p> : null}
           {status.isCheckmate ? <p className="mt-2 text-sm text-[#ff3359]">Checkmate.</p> : null}
           {status.isDraw ? <p className="mt-2 text-sm text-[#ff3359]">Game drawn.</p> : null}
