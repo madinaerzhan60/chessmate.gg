@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Square } from 'chess.js';
 import { useChessGame } from '@/hooks/useChessGame';
-import { useStockfish } from '@/hooks/useStockfish';
+import { useEngine } from '@/hooks/useEngine';
 import { MoveHistory } from '@/components/board/MoveHistory';
 import { GameControls } from '@/components/board/GameControls';
 import { getAccountName, saveGameRecord } from '@/lib/gameArchive';
@@ -16,7 +16,7 @@ interface ChessBoardProps {
 
 export function ChessBoard({ aiLevel = 4, onPgnChange }: ChessBoardProps) {
   const { fen, makeMove, legalMoves, history, status, reset, game } = useChessGame();
-  const { getBestMove, thinking } = useStockfish(aiLevel);
+  const { getBestMove, thinking } = useEngine();
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [boardOrientation, setBoardOrientation] = useState<'white' | 'black'>('white');
   const savedGameKeyRef = useRef<string | null>(null);

@@ -3,6 +3,11 @@ import { analyzeGame } from '../services/groqService.js';
 
 export const analysisRouter = Router();
 
+analysisRouter.post('/demo', async (req, res) => {
+  const summary = await analyzeGame(req.body.pgn ?? '', req.body.coachStyle ?? 'carlsen');
+  res.json({ summary });
+});
+
 analysisRouter.post('/:gameId', async (req, res) => {
   const summary = await analyzeGame(req.body.pgn ?? '', req.body.coachStyle ?? 'carlsen');
   res.json({ gameId: req.params.gameId, summary });
