@@ -45,7 +45,7 @@ export function useStockfish(skillLevel: number) {
 
       worker.addEventListener('message', listener as EventListener);
       worker.postMessage(`position fen ${fen}`);
-      worker.postMessage(`go depth ${depth} movetime ${Math.min(10000, depth * 500)}`);
+      worker.postMessage(`go depth ${depth} movetime ${Math.min(3000, depth * 250)}`);
     });
 
   return { getBestMove, thinking };
