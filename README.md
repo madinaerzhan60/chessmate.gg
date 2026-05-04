@@ -1,4 +1,6 @@
-# ♟️ CHECKMATE.GG   https://chessmate-gg.vercel.app/
+# ♟️ CHECKMATE.GG
+
+**Быстрая игра в шахматы с AI-анализом и красивым интерфейсом.**
 
 ## Что это?
 
@@ -18,7 +20,6 @@ CHECKMATE.GG — это full-stack веб-приложение для игры �
 ✅ **Анализ партий** — AI coach в стиле Carlsen, Karpov или Tal  
 ✅ **Сохранение игр** — все партии в localStorage или БД  
 ✅ **Красивый интерфейс** — neon-red theme, responsive дизайн  
-
 
 ## Мобильная версия
 
@@ -59,6 +60,3 @@ npm run dev
 ```
 
 Открой http://localhost:3000 → **Play vs AI** → Choose level → Enjoy! 🎉
-
-
-

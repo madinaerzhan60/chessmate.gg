@@ -10,7 +10,7 @@ import { NeonButton } from '@/components/ui/NeonButton';
 export default function RoomPage() {
   const params = useParams<{ roomId: string }>();
   const roomId = params.roomId;
-  const { socket, connected } = useSocket(roomId);
+  const { socket, connected, playerId, joinRoom } = useSocket(roomId);
   const [fen, setFen] = useState(() => new Chess().fen());
   const fenRef = useRef(fen);
   const [playerColor, setPlayerColor] = useState<'w' | 'b' | null>(null);
@@ -58,6 +58,21 @@ export default function RoomPage() {
       setMessage(payload.yourColor === 'w' ? 'Вы белые. Делайте первый ход.' : 'Вы черные. Ждите ход белых.');
     };
 
+    const onRoomState = (payload: { roomId: string; yourColor: 'w' | 'b' | null; players: number; isFull?: boolean; hasOpponent?: boolean }) => {
+      if (payload.roomId !== roomId) return;
+      setPlayersInRoom(normalizePlayersCount(payload.players));
+      setRoomFull(Boolean(payload.isFull));
+
+      if (payload.yourColor) {
+        setPlayerColor(payload.yourColor);
+        setMessage(payload.yourColor === 'w' ? 'Вы белые. Ждите второй ход или начните партию.' : 'Вы черные. Ждите ход белых.');
+      } else if (payload.players >= 2) {
+        setMessage('Второй игрок подключился. Определяем вашу роль...');
+      } else {
+        setMessage('Ждем второго игрока...');
+      }
+    };
+
     const onRoomFull = (payload: { roomId: string }) => {
       if (payload.roomId !== roomId) return;
       setRoomFull(true);
@@ -91,17 +106,27 @@ export default function RoomPage() {
     };
 
     socket.on('room_joined', onRoomJoined);
+    socket.on('room_state', onRoomState);
     socket.on('room_players', onRoomPlayers);
     socket.on('move', onRemoteMove);
     socket.on('room_full', onRoomFull);
 
+    // Request join after listeners attached to avoid missing the 'room_joined' event
+    try {
+      joinRoom(roomId);
+      socket.emit('request_room_state', { roomId, playerId });
+    } catch (e) {
+      // ignore
+    }
+
     return () => {
       socket.off('room_joined', onRoomJoined);
+      socket.off('room_state', onRoomState);
       socket.off('room_players', onRoomPlayers);
       socket.off('move', onRemoteMove);
       socket.off('room_full', onRoomFull);
     };
-  }, [socket, roomId]);
+  }, [socket, roomId, joinRoom, playerId]);
 
   const tryMove = (from: string, to: string) => {
     if (!playerColor) {

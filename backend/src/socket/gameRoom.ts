@@ -8,6 +8,20 @@ type RoomPlayer = {
 
 const roomMembers = new Map<string, RoomPlayer[]>();
 
+const getRoomSnapshot = (roomId: string, playerId?: string) => {
+  const members = roomMembers.get(roomId) ?? [];
+  const current = playerId ? members.find((member) => member.playerId === playerId) : undefined;
+
+  return {
+    roomId,
+    players: members.length,
+    yourColor: current?.color ?? null,
+    isFull: members.length >= 2,
+    hasOpponent: members.length >= 2,
+    playerIds: members.map((member) => member.playerId)
+  };
+};
+
 export function registerGameRoom(io: Server, socket: Socket) {
   socket.on('join_room', ({ roomId, playerId }) => {
     if (!roomId || typeof roomId !== 'string') return;
@@ -30,11 +44,19 @@ export function registerGameRoom(io: Server, socket: Socket) {
     roomMembers.set(roomId, members);
     socket.join(roomId);
 
-    const current = members.find((member) => member.playerId === playerId);
-    const yourColor = current?.color ?? 'w';
+    const snapshot = getRoomSnapshot(roomId, playerId);
 
-    socket.emit('room_joined', { roomId, yourColor, players: members.length });
+    socket.emit('room_joined', snapshot);
+    socket.emit('room_state', snapshot);
     io.to(roomId).emit('room_players', { roomId, players: members.length });
+    io.to(roomId).emit('room_state', getRoomSnapshot(roomId));
+  });
+
+  socket.on('request_room_state', ({ roomId, playerId }) => {
+    if (!roomId || typeof roomId !== 'string') return;
+    if (playerId && typeof playerId !== 'string') return;
+
+    socket.emit('room_state', getRoomSnapshot(roomId, playerId));
   });
 
   socket.on('move', (payload) => {

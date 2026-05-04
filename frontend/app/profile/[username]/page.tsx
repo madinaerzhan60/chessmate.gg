@@ -20,14 +20,26 @@ export default function ProfilePage() {
   const [profileSummary, setProfileSummary] = useState('Local account dashboard.');
 
   useEffect(() => {
+    const syncSavedGames = () => setSavedGames(getSavedGames());
     const storedAccount = getAccountName();
+    const resolvedAccount = storedAccount === 'Guest' && routeName.toLowerCase() !== 'guest' ? routeName : storedAccount;
+
     if (storedAccount === 'Guest' && routeName.toLowerCase() !== 'guest') {
       setAccountName(routeName);
-      setLocalAccountName(routeName);
-    } else {
-      setLocalAccountName(storedAccount === 'Guest' ? routeName : storedAccount);
     }
-    setSavedGames(getSavedGames());
+
+    setLocalAccountName(resolvedAccount);
+    syncSavedGames();
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === 'checkmate.savedGames' || event.key === 'checkmate.accountName') {
+        syncSavedGames();
+        const latestAccount = getAccountName();
+        setLocalAccountName(latestAccount === 'Guest' ? routeName : latestAccount);
+      }
+    };
+
+    window.addEventListener('storage', onStorage);
 
     api
       .get(`/users/${routeName}`)
@@ -39,9 +51,14 @@ export default function ProfilePage() {
         setProfileRating(1820);
         setProfileSummary('Local account dashboard.');
       });
+
+    return () => window.removeEventListener('storage', onStorage);
   }, [routeName]);
 
-  const accountGames = useMemo(() => savedGames.filter((game) => game.accountName === accountName), [accountName, savedGames]);
+  const accountGames = useMemo(() => {
+    const target = accountName.trim().toLowerCase();
+    return savedGames.filter((game) => game.accountName.trim().toLowerCase() === target);
+  }, [accountName, savedGames]);
   const visibleGames = accountGames.length > 0 ? accountGames : savedGames;
 
   const handleAccountRename = (value: string) => {
@@ -84,6 +101,9 @@ export default function ProfilePage() {
             <h2 className="font-[Orbitron] text-xl text-[#ff3359]">Saved games</h2>
             <span className="text-xs uppercase tracking-[0.22em] text-textSecondary">{visibleGames.length} records</span>
           </div>
+          <p className="mt-2 text-xs uppercase tracking-[0.22em] text-textSecondary">
+            Showing {accountGames.length > 0 ? 'your account games' : 'all local saved games'}
+          </p>
           <div className="mt-4 space-y-3">
             {visibleGames.length > 0 ? (
               visibleGames.map((game) => (
