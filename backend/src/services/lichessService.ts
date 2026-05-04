@@ -1,3 +1,5 @@
+import { Chess } from 'chess.js';
+
 interface CloudEvalResponse {
   fen?: string;
   knodes?: number;
@@ -46,8 +48,8 @@ export async function getBestMove(fen: string): Promise<string | null> {
   const eval_data = await getLichessEval(fen);
   
   if (!eval_data) {
-    console.log('[getBestMove] No eval data received');
-    return null;
+    console.log('[getBestMove] No eval data received, using fallback');
+    return getRandomMove(fen);
   }
 
   if (eval_data?.best) {
@@ -61,6 +63,24 @@ export async function getBestMove(fen: string): Promise<string | null> {
     return moves[0] ?? null;
   }
 
-  console.log('[getBestMove] No move found in eval data');
-  return null;
+  console.log('[getBestMove] No move found in eval data, using fallback');
+  return getRandomMove(fen);
+}
+
+function getRandomMove(fen: string): string | null {
+  try {
+    const game = new Chess(fen);
+    const moves = game.moves({ verbose: true });
+    if (moves.length === 0) {
+      console.log('[Random] No legal moves available');
+      return null;
+    }
+    const randomMove = moves[Math.floor(Math.random() * moves.length)];
+    const moveStr = `${randomMove.from}${randomMove.to}${randomMove.promotion || ''}`;
+    console.log('[Random] Selected random move:', moveStr, 'from', moves.length, 'options');
+    return moveStr;
+  } catch (error) {
+    console.error('[Random] Error getting random move:', error);
+    return null;
+  }
 }
