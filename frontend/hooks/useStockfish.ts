@@ -17,9 +17,18 @@ export function useStockfish(skillLevel: number) {
   useEffect(() => {
     const worker = new Worker('/stockfish/stockfish-18-lite-single.js');
     workerRef.current = worker;
-    worker.postMessage('uci');
-    worker.postMessage(`setoption name Skill Level value ${skillLevel}`);
-    worker.postMessage('isready');
+    
+    const initWorker = () => {
+      worker.postMessage('uci');
+      worker.postMessage(`setoption name Skill Level value ${Math.min(20, skillLevel)}`);
+      worker.postMessage('isready');
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initWorker, { once: true });
+    } else {
+      initWorker();
+    }
 
     return () => {
       worker.terminate();
@@ -30,15 +39,40 @@ export function useStockfish(skillLevel: number) {
   const getBestMove = (fen: string): Promise<BestMoveResult | null> =>
     new Promise((resolve) => {
       const worker = workerRef.current;
-      if (!worker) return resolve(null);
+      if (!worker) {
+        setThinking(false);
+        return resolve(null);
+      }
+
       setThinking(true);
       const depth = skillToDepth(skillLevel);
+      let resolved = false;
+
+      const timeoutId = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          setThinking(false);
+          worker.removeEventListener('message', listener as EventListener);
+          resolve(null);
+        }
+      }, 2000);
 
       const listener = (event: MessageEvent<string>) => {
         if (typeof event.data === 'string' && event.data.startsWith('bestmove')) {
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(timeoutId);
           setThinking(false);
           const move = event.data.split(' ')[1] ?? '';
-          resolve({ from: move.slice(0, 2), to: move.slice(2, 4), promotion: move.slice(4, 5) || undefined });
+          if (move) {
+            resolve({
+              from: move.slice(0, 2),
+              to: move.slice(2, 4),
+              promotion: move.slice(4, 5) || undefined
+            });
+          } else {
+            resolve(null);
+          }
           worker.removeEventListener('message', listener as EventListener);
         }
       };

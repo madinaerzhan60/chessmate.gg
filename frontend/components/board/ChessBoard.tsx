@@ -16,7 +16,7 @@ interface ChessBoardProps {
 
 export function ChessBoard({ aiLevel = 4, onPgnChange }: ChessBoardProps) {
   const { fen, makeMove, legalMoves, history, status, reset, game } = useChessGame();
-  const { getBestMove, thinking } = useStockfish(Math.min(20, aiLevel * 3));
+  const { getBestMove, thinking } = useStockfish(aiLevel);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [boardOrientation, setBoardOrientation] = useState<'white' | 'black'>('white');
   const savedGameKeyRef = useRef<string | null>(null);
