@@ -55,9 +55,14 @@ export function ChessBoard({ aiLevel = 4, onPgnChange }: ChessBoardProps) {
 
     void (async () => {
       if (aiLevel <= 0 || outcome.turn !== 'b' || outcome.isGameOver) return;
+      console.log('Requesting AI move for position:', outcome.fen);
       const bestMove = await getBestMove(outcome.fen);
       if (bestMove) {
-        makeMove(bestMove.from, bestMove.to, bestMove.promotion);
+        console.log('Applying AI move:', bestMove);
+        const moveResult = makeMove(bestMove.from, bestMove.to, bestMove.promotion);
+        if (!moveResult) {
+          console.error('Failed to apply AI move on FEN:', outcome.fen);
+        }
       }
     })();
     return true;
