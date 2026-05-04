@@ -8,7 +8,7 @@ interface BestMoveResult {
   promotion?: string;
 }
 
-const skillToDepth = (skill: number) => Math.max(8, Math.min(24, skill * 2 + 4));
+const skillToDepth = (skill: number) => Math.max(6, Math.min(16, skill + 6));
 
 export function useStockfish(skillLevel: number) {
   const workerRef = useRef<Worker | null>(null);
@@ -45,7 +45,7 @@ export function useStockfish(skillLevel: number) {
 
       worker.addEventListener('message', listener as EventListener);
       worker.postMessage(`position fen ${fen}`);
-      worker.postMessage(`go depth ${depth} movetime ${Math.min(3000, depth * 250)}`);
+      worker.postMessage(`go depth ${depth} movetime ${Math.min(1500, depth * 150)}`);
     });
 
   return { getBestMove, thinking };
