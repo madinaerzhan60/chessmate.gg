@@ -18,12 +18,13 @@ export function useEngine() {
       console.log('Engine requesting move for FEN:', fen);
       
       const response = await api.post('/engine/move', { fen }, { timeout: 3000 });
+      console.log('[API Response] Status:', response.status, 'Data:', response.data);
+      
       const move = response.data?.move;
-
       console.log('Engine returned move:', move);
 
       if (!move || typeof move !== 'string' || move.length < 4) {
-        console.warn('Invalid move format from engine:', move);
+        console.warn('Invalid move format from engine:', move, '(response was:', response.data, ')');
         setThinking(false);
         return null;
       }
@@ -38,7 +39,11 @@ export function useEngine() {
       setThinking(false);
       return result;
     } catch (error) {
-      console.error('Engine error:', error);
+      console.error('Engine error:', error instanceof Error ? error.message : error);
+      if (error instanceof Error && 'response' in error) {
+        const axiosError = error as any;
+        console.error('API Response:', axiosError.response?.status, axiosError.response?.data);
+      }
       setThinking(false);
       return null;
     }
