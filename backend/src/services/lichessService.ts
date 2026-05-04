@@ -1,7 +1,10 @@
 interface CloudEvalResponse {
+  fen?: string;
+  knodes?: number;
+  depth?: number;
+  pvs?: Array<{ moves: string; cp?: number }>;
   eval?: number;
   best?: string;
-  depth?: number;
 }
 
 export async function getLichessEval(fen: string): Promise<CloudEvalResponse | null> {
@@ -32,5 +35,15 @@ export async function getLichessEval(fen: string): Promise<CloudEvalResponse | n
 
 export async function getBestMove(fen: string): Promise<string | null> {
   const eval_data = await getLichessEval(fen);
-  return eval_data?.best ?? null;
+  
+  if (eval_data?.best) {
+    return eval_data.best;
+  }
+
+  if (eval_data?.pvs?.[0]?.moves) {
+    const moves = eval_data.pvs[0].moves.split(' ');
+    return moves[0] ?? null;
+  }
+
+  return null;
 }
