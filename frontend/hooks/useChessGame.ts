@@ -16,8 +16,10 @@ export function useChessGame() {
   const [fen, setFen] = useState(game.fen());
   const [history, setHistory] = useState<string[]>([]);
 
-  const makeMove = (from: string, to: string, promotion?: string): MoveOutcome | null => {
-    const clone = new Chess(game.fen());
+  const makeMove = (from: string, to: string, promotion?: string, baseFen?: string): MoveOutcome | null => {
+    // Use provided FEN to avoid closure issues with stale game state
+    const fenToUse = baseFen || game.fen();
+    const clone = new Chess(fenToUse);
     const moveObj: any = { from, to };
     if (promotion) moveObj.promotion = promotion;
     const move = clone.move(moveObj) as Move | null;

@@ -66,7 +66,8 @@ export function ChessBoard({ aiLevel = 4, onPgnChange }: ChessBoardProps) {
       console.log('[AI Response] bestMove:', bestMove);
       if (bestMove) {
         console.log('[AI Apply] Making move:', bestMove.from, '->', bestMove.to, 'promotion:', bestMove.promotion);
-        const moveResult = makeMove(bestMove.from, bestMove.to, bestMove.promotion);
+        // Pass outcome.fen to avoid closure issues with stale game state
+        const moveResult = makeMove(bestMove.from, bestMove.to, bestMove.promotion, outcome.fen);
         console.log('[AI Result]', moveResult ? 'SUCCESS' : 'FAILED');
         if (!moveResult) {
           console.error('Failed to apply AI move on FEN:', outcome.fen);
