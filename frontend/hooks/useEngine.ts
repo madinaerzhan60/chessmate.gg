@@ -15,7 +15,7 @@ export function useEngine() {
   const getBestMove = async (fen: string): Promise<BestMoveResult | null> => {
     try {
       setThinking(true);
-      const response = await api.post('/engine/move', { fen });
+      const response = await api.post('/engine/move', { fen }, { timeout: 3000 });
       const move = response.data?.move;
 
       if (!move) {

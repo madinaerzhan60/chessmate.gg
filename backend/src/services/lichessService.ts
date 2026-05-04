@@ -14,11 +14,17 @@ export async function getLichessEval(fen: string): Promise<CloudEvalResponse | n
       variant: 'standard'
     });
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     const response = await fetch(`https://lichess.org/api/cloud-eval?${params}`, {
       headers: {
         Accept: 'application/json'
-      }
+      },
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       console.error('Lichess API error:', response.status);
