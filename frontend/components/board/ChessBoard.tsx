@@ -56,7 +56,9 @@ export function ChessBoard({ aiLevel = 4, onPgnChange }: ChessBoardProps) {
     void (async () => {
       if (aiLevel <= 0 || outcome.turn !== 'b' || outcome.isGameOver) return;
       const bestMove = await getBestMove(outcome.fen);
-      if (bestMove) makeMove(bestMove.from, bestMove.to, bestMove.promotion);
+      if (bestMove) {
+        makeMove(bestMove.from, bestMove.to, bestMove.promotion);
+      }
     })();
     return true;
   };

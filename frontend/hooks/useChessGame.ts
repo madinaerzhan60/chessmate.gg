@@ -16,9 +16,11 @@ export function useChessGame() {
   const [fen, setFen] = useState(game.fen());
   const [history, setHistory] = useState<string[]>([]);
 
-  const makeMove = (from: string, to: string, promotion = 'q'): MoveOutcome | null => {
+  const makeMove = (from: string, to: string, promotion?: string): MoveOutcome | null => {
     const clone = new Chess(game.fen());
-    const move = clone.move({ from, to, promotion }) as Move | null;
+    const moveObj: any = { from, to };
+    if (promotion) moveObj.promotion = promotion;
+    const move = clone.move(moveObj) as Move | null;
     if (!move) return null;
     setGame(clone);
     setFen(clone.fen());
