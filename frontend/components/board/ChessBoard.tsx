@@ -49,17 +49,25 @@ export function ChessBoard({ aiLevel = 4, onPgnChange }: ChessBoardProps) {
   }, [aiLevel, game, history.length, status.isCheckmate, status.isDraw, status.pgn]);
 
   const onPieceDrop = (sourceSquare: string, targetSquare: string) => {
+    console.log(`[Move] Dropped piece from ${sourceSquare} to ${targetSquare}`);
     const outcome = makeMove(sourceSquare, targetSquare);
+    console.log('[Move Result]', { success: !!outcome, turn: outcome?.turn, isGameOver: outcome?.isGameOver, aiLevel });
     if (!outcome) return false;
     setSelectedSquare(null);
 
     void (async () => {
-      if (aiLevel <= 0 || outcome.turn !== 'b' || outcome.isGameOver) return;
-      console.log('Requesting AI move for position:', outcome.fen);
+      console.log('[AI Check] aiLevel:', aiLevel, 'turn:', outcome.turn, 'isGameOver:', outcome.isGameOver);
+      if (aiLevel <= 0 || outcome.turn !== 'b' || outcome.isGameOver) {
+        console.log('[AI Skipped] - condition failed');
+        return;
+      }
+      console.log('[AI Request] FEN:', outcome.fen);
       const bestMove = await getBestMove(outcome.fen);
+      console.log('[AI Response] bestMove:', bestMove);
       if (bestMove) {
-        console.log('Applying AI move:', bestMove);
+        console.log('[AI Apply] Making move:', bestMove.from, '->', bestMove.to, 'promotion:', bestMove.promotion);
         const moveResult = makeMove(bestMove.from, bestMove.to, bestMove.promotion);
+        console.log('[AI Result]', moveResult ? 'SUCCESS' : 'FAILED');
         if (!moveResult) {
           console.error('Failed to apply AI move on FEN:', outcome.fen);
         }
