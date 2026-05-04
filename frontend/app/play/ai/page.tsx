@@ -16,7 +16,6 @@ export default function PlayAiPage() {
       eyebrow="AI BATTLE MODE"
       title="Play vs AI"
       description="Tune the engine, pick a coach style, and drop into a high-contrast duel with the same red-neon visual language as the landing page."
-      actions={<NeonButton>Start Match</NeonButton>}
     >
       <div className="space-y-4">
         <div className="rounded-2xl border border-white/5 bg-black/30 p-4 backdrop-blur-md">
