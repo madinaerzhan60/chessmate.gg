@@ -17,23 +17,31 @@ export function useChessGame() {
   const [history, setHistory] = useState<string[]>([]);
 
   const makeMove = (from: string, to: string, promotion?: string, baseFen?: string): MoveOutcome | null => {
-    // Use provided FEN to avoid closure issues with stale game state
-    const fenToUse = baseFen || game.fen();
-    const clone = new Chess(fenToUse);
-    const moveObj: any = { from, to };
-    if (promotion) moveObj.promotion = promotion;
-    const move = clone.move(moveObj) as Move | null;
-    if (!move) return null;
-    setGame(clone);
-    setFen(clone.fen());
-    setHistory(clone.history());
-    return {
-      move,
-      fen: clone.fen(),
-      turn: clone.turn(),
-      isGameOver: clone.isGameOver(),
-      pgn: clone.pgn()
-    };
+    try {
+      // Use provided FEN to avoid closure issues with stale game state
+      const fenToUse = baseFen || game.fen();
+      const clone = new Chess(fenToUse);
+      const moveObj: any = { from, to };
+      if (promotion) moveObj.promotion = promotion;
+      const move = clone.move(moveObj) as Move | null;
+      if (!move) {
+        console.warn('[makeMove] Invalid move:', { from, to, promotion, fen: fenToUse?.substring(0, 40) });
+        return null;
+      }
+      setGame(clone);
+      setFen(clone.fen());
+      setHistory(clone.history());
+      return {
+        move,
+        fen: clone.fen(),
+        turn: clone.turn(),
+        isGameOver: clone.isGameOver(),
+        pgn: clone.pgn()
+      };
+    } catch (error) {
+      console.error('[makeMove] Exception:', error instanceof Error ? error.message : error);
+      return null;
+    }
   };
 
   const legalMoves = (square: string) => game.moves({ square: square as Move['from'], verbose: true }) as Move[];

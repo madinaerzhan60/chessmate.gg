@@ -50,9 +50,13 @@ export function ChessBoard({ aiLevel = 4, onPgnChange }: ChessBoardProps) {
 
   const onPieceDrop = (sourceSquare: string, targetSquare: string) => {
     console.log(`[Move] Dropped piece from ${sourceSquare} to ${targetSquare}`);
+    console.log(`[Move] Current FEN before move:`, fen);
     const outcome = makeMove(sourceSquare, targetSquare);
     console.log('[Move Result]', { success: !!outcome, turn: outcome?.turn, isGameOver: outcome?.isGameOver, aiLevel });
-    if (!outcome) return false;
+     if (!outcome) {
+       console.log('[Move] Invalid move - returning false');
+       return false;
+     }
     setSelectedSquare(null);
 
     void (async () => {
