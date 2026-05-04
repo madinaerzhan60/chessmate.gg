@@ -23,6 +23,11 @@ export default function RoomPage() {
 
   const game = useMemo(() => new Chess(fen), [fen]);
 
+  const normalizePlayersCount = (value: unknown) => {
+    if (typeof value !== 'number' || Number.isNaN(value)) return 1;
+    return Math.min(2, Math.max(1, Math.floor(value)));
+  };
+
   useEffect(() => {
     fenRef.current = fen;
   }, [fen]);
@@ -48,7 +53,7 @@ export default function RoomPage() {
     const onRoomJoined = (payload: { roomId: string; yourColor: 'w' | 'b'; players: number }) => {
       if (payload.roomId !== roomId) return;
       setPlayerColor(payload.yourColor);
-      setPlayersInRoom(payload.players);
+      setPlayersInRoom(normalizePlayersCount(payload.players));
       setRoomFull(false);
       setMessage(payload.yourColor === 'w' ? 'Вы белые. Делайте первый ход.' : 'Вы черные. Ждите ход белых.');
     };
@@ -56,12 +61,13 @@ export default function RoomPage() {
     const onRoomFull = (payload: { roomId: string }) => {
       if (payload.roomId !== roomId) return;
       setRoomFull(true);
+      setPlayersInRoom(2);
       setMessage('Комната занята. В комнате уже 2 игрока.');
     };
 
     const onRoomPlayers = (payload: { roomId: string; players: number }) => {
       if (payload.roomId !== roomId) return;
-      setPlayersInRoom(payload.players);
+      setPlayersInRoom(normalizePlayersCount(payload.players));
     };
 
     const onRemoteMove = (payload: { roomId: string; from: string; to: string; promotion?: string; fen?: string }) => {
@@ -224,7 +230,7 @@ export default function RoomPage() {
       </div>
       <div className="rounded-xl border border-[#ff0033]/40 bg-[#22080f] p-3 text-sm">
         <p>Вы: {playerColor === 'w' ? 'Белые' : playerColor === 'b' ? 'Черные' : 'Определяем роль...'}</p>
-        <p>Игроков в комнате: {playersInRoom}/2</p>
+        <p>Игроков в комнате: {normalizePlayersCount(playersInRoom)}/2</p>
         <p>Ход: {game.turn() === 'w' ? 'Белых' : 'Черных'}</p>
       </div>
       {!connected ? <div className="rounded-xl border border-[#ff0033]/40 bg-[#22080f] p-3 text-sm">Connecting to room...</div> : null}
