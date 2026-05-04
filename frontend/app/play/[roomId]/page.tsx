@@ -1,20 +1,177 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ChessBoard } from '@/components/board/ChessBoard';
+import { Chess, Move, Square } from 'chess.js';
+import { Chessboard } from 'react-chessboard';
 import { useSocket } from '@/hooks/useSocket';
 import { NeonButton } from '@/components/ui/NeonButton';
 
 export default function RoomPage() {
   const params = useParams<{ roomId: string }>();
-  const { connected } = useSocket(params.roomId);
+  const roomId = params.roomId;
+  const { socket, connected } = useSocket(roomId);
+  const [fen, setFen] = useState(() => new Chess().fen());
+  const fenRef = useRef(fen);
+  const [playerColor, setPlayerColor] = useState<'w' | 'b' | null>(null);
+  const [playersInRoom, setPlayersInRoom] = useState(1);
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
+
+  const game = useMemo(() => new Chess(fen), [fen]);
+
+  useEffect(() => {
+    fenRef.current = fen;
+  }, [fen]);
 
   const inviteLink = useMemo(() => {
     if (typeof window === 'undefined') return `https://chessmate-gg.vercel.app/play/${params.roomId}`;
     return `${window.location.origin}/play/${params.roomId}`;
   }, [params.roomId]);
+
+  useEffect(() => {
+    const onRoomJoined = (payload: { roomId: string; yourColor: 'w' | 'b'; players: number }) => {
+      if (payload.roomId !== roomId) return;
+      setPlayerColor(payload.yourColor);
+      setPlayersInRoom(payload.players);
+      setMessage(payload.yourColor === 'w' ? 'Вы белые. Делайте первый ход.' : 'Вы черные. Ждите ход белых.');
+    };
+
+    const onRoomPlayers = (payload: { roomId: string; players: number }) => {
+      if (payload.roomId !== roomId) return;
+      setPlayersInRoom(payload.players);
+    };
+
+    const onRemoteMove = (payload: { roomId: string; from: string; to: string; promotion?: string; fen?: string }) => {
+      if (payload.roomId !== roomId) return;
+
+      const clone = new Chess(fenRef.current);
+      let moveResult: Move | null = null;
+      try {
+        moveResult = clone.move({ from: payload.from, to: payload.to, promotion: payload.promotion }) as Move | null;
+      } catch {
+        moveResult = null;
+      }
+
+      if (moveResult) {
+        setFen(clone.fen());
+      } else if (payload.fen) {
+        setFen(payload.fen);
+      }
+
+      setMessage('Ход соперника получен. Ваш ход.');
+    };
+
+    socket.on('room_joined', onRoomJoined);
+    socket.on('room_players', onRoomPlayers);
+    socket.on('move', onRemoteMove);
+
+    return () => {
+      socket.off('room_joined', onRoomJoined);
+      socket.off('room_players', onRoomPlayers);
+      socket.off('move', onRemoteMove);
+    };
+  }, [socket, roomId]);
+
+  const tryMove = (from: string, to: string) => {
+    if (!playerColor) {
+      setMessage('Подключение к комнате...');
+      return false;
+    }
+
+    const activeTurn = game.turn();
+    if (activeTurn !== playerColor) {
+      setMessage(playerColor === 'w' ? 'Сейчас ход черных.' : 'Сейчас ход белых.');
+      return false;
+    }
+
+    const piece = game.get(from as Square);
+    const promotion = piece?.type === 'p' && (to.endsWith('1') || to.endsWith('8')) ? 'q' : undefined;
+
+    const clone = new Chess(fenRef.current);
+    let moveResult: Move | null = null;
+    try {
+      moveResult = clone.move({ from, to, promotion }) as Move | null;
+    } catch {
+      moveResult = null;
+    }
+
+    if (!moveResult) {
+      setMessage('Неверный ход. Выберите подсвеченную клетку.');
+      return false;
+    }
+
+    const nextFen = clone.fen();
+    setFen(nextFen);
+    setSelectedSquare(null);
+    setMessage('Ход отправлен сопернику.');
+    socket.emit('move', { roomId, from, to, promotion, fen: nextFen });
+    return true;
+  };
+
+  const handleSquareClick = (square: string) => {
+    if (!playerColor) {
+      setMessage('Подключение к комнате...');
+      return;
+    }
+
+    const piece = game.get(square as Square);
+    const activeTurn = game.turn();
+
+    if (selectedSquare) {
+      if (selectedSquare === square) {
+        setSelectedSquare(null);
+        setMessage(null);
+        return;
+      }
+
+      if (piece && piece.color === playerColor && activeTurn === playerColor) {
+        setSelectedSquare(square);
+        setMessage(null);
+        return;
+      }
+
+      const moved = tryMove(selectedSquare, square);
+      if (!moved) return;
+      return;
+    }
+
+    if (!piece) {
+      setMessage('Выберите свою фигуру.');
+      return;
+    }
+
+    if (piece.color !== playerColor) {
+      setMessage(playerColor === 'w' ? 'Вы играете белыми.' : 'Вы играете черными.');
+      return;
+    }
+
+    if (activeTurn !== playerColor) {
+      setMessage('Сейчас ход соперника.');
+      return;
+    }
+
+    setSelectedSquare(square);
+    setMessage(null);
+  };
+
+  const customSquareStyles = useMemo(() => {
+    const styles: Record<string, React.CSSProperties> = {};
+    if (!selectedSquare) return styles;
+
+    styles[selectedSquare] = {
+      boxShadow: 'inset 0 0 0 2px rgba(255, 0, 51, 0.95), 0 0 20px rgba(255, 0, 51, 0.45)'
+    };
+
+    game.moves({ square: selectedSquare as Square, verbose: true }).forEach((move) => {
+      styles[move.to] = {
+        background: 'radial-gradient(circle, rgba(255,0,51,0.65) 18%, rgba(255,0,51,0.14) 28%, transparent 31%)'
+      };
+    });
+
+    return styles;
+  }, [selectedSquare, game]);
 
   const copyInviteLink = async () => {
     try {
@@ -41,8 +198,26 @@ export default function RoomPage() {
           {copyStatus === 'failed' ? <span className="text-xs text-[#ff3359]">Copy failed</span> : null}
         </div>
       </div>
+      <div className="rounded-xl border border-[#ff0033]/40 bg-[#22080f] p-3 text-sm">
+        <p>Вы: {playerColor === 'w' ? 'Белые' : playerColor === 'b' ? 'Черные' : 'Определяем роль...'}</p>
+        <p>Игроков в комнате: {playersInRoom}/2</p>
+        <p>Ход: {game.turn() === 'w' ? 'Белых' : 'Черных'}</p>
+      </div>
       {!connected ? <div className="rounded-xl border border-[#ff0033]/40 bg-[#22080f] p-3 text-sm">Reconnecting...</div> : null}
-      <ChessBoard aiLevel={0} />
+      <div className="neon-card p-3">
+        <Chessboard
+          id="room-board"
+          position={fen}
+          boardOrientation={playerColor === 'b' ? 'black' : 'white'}
+          onSquareClick={handleSquareClick}
+          customDarkSquareStyle={{ backgroundColor: '#2b1216' }}
+          customLightSquareStyle={{ backgroundColor: '#6a262c' }}
+          customSquareStyles={customSquareStyles}
+          animationDuration={150}
+          arePiecesDraggable={false}
+        />
+        {message ? <p className="mt-2 text-sm text-[#ff3359]">{message}</p> : null}
+      </div>
     </div>
   );
 }

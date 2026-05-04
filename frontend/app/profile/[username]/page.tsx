@@ -21,7 +21,12 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const storedAccount = getAccountName();
-    setLocalAccountName(storedAccount === 'Guest' ? routeName : storedAccount);
+    if (storedAccount === 'Guest' && routeName.toLowerCase() !== 'guest') {
+      setAccountName(routeName);
+      setLocalAccountName(routeName);
+    } else {
+      setLocalAccountName(storedAccount === 'Guest' ? routeName : storedAccount);
+    }
     setSavedGames(getSavedGames());
 
     api
@@ -37,6 +42,7 @@ export default function ProfilePage() {
   }, [routeName]);
 
   const accountGames = useMemo(() => savedGames.filter((game) => game.accountName === accountName), [accountName, savedGames]);
+  const visibleGames = accountGames.length > 0 ? accountGames : savedGames;
 
   const handleAccountRename = (value: string) => {
     setLocalAccountName(value);
@@ -76,17 +82,17 @@ export default function ProfilePage() {
         <div className="neon-card border-white/5 bg-black/35 p-4">
           <div className="flex items-center justify-between gap-3">
             <h2 className="font-[Orbitron] text-xl text-[#ff3359]">Saved games</h2>
-            <span className="text-xs uppercase tracking-[0.22em] text-textSecondary">{accountGames.length} records</span>
+            <span className="text-xs uppercase tracking-[0.22em] text-textSecondary">{visibleGames.length} records</span>
           </div>
           <div className="mt-4 space-y-3">
-            {accountGames.length > 0 ? (
-              accountGames.map((game) => (
+            {visibleGames.length > 0 ? (
+              visibleGames.map((game) => (
                 <div key={game.id} className="rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                     <span className="text-white">{game.result}</span>
                     <span className="font-mono text-textSecondary">{new Date(game.playedAt).toLocaleString()}</span>
                   </div>
-                  <p className="mt-2 text-xs text-textSecondary">{game.moves} moves • AI level {game.aiLevel}</p>
+                  <p className="mt-2 text-xs text-textSecondary">{game.moves} moves • AI level {game.aiLevel} • {game.accountName}</p>
                 </div>
               ))
             ) : (
