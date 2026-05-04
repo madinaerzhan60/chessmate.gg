@@ -49,6 +49,27 @@ export function ChessBoard({ aiLevel = 4, onPgnChange }: ChessBoardProps) {
     savedGameKeyRef.current = gameKey;
   }, [aiLevel, game, history.length, status.isCheckmate, status.isDraw, status.pgn]);
 
+  const handleSaveGame = () => {
+    if (history.length === 0 || !status.pgn.trim()) {
+      setMoveMessage('Сначала сделайте хотя бы один ход.');
+      return;
+    }
+
+    const result = status.isDraw ? '1/2-1/2' : status.isCheckmate ? (game.turn() === 'w' ? '0-1' : '1-0') : '*';
+
+    saveGameRecord({
+      id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`,
+      accountName: getAccountName(),
+      pgn: status.pgn,
+      result,
+      aiLevel,
+      playedAt: new Date().toISOString(),
+      moves: history.length
+    });
+
+    setMoveMessage('Партия сохранена. Откройте Profile -> Saved games.');
+  };
+
   const onPieceDrop = (sourceSquare: string, targetSquare: string) => {
     const outcome = makeMove(sourceSquare, targetSquare);
     if (!outcome) {
@@ -166,7 +187,12 @@ export function ChessBoard({ aiLevel = 4, onPgnChange }: ChessBoardProps) {
           {status.isCheckmate ? <p className="mt-2 text-sm text-[#ff3359]">Checkmate.</p> : null}
           {status.isDraw ? <p className="mt-2 text-sm text-[#ff3359]">Game drawn.</p> : null}
         </div>
-        <GameControls onReset={reset} onFlip={() => setBoardOrientation((s) => (s === 'white' ? 'black' : 'white'))} />
+        <GameControls
+          onSave={handleSaveGame}
+          canSave={history.length > 0}
+          onReset={reset}
+          onFlip={() => setBoardOrientation((s) => (s === 'white' ? 'black' : 'white'))}
+        />
       </div>
       <MoveHistory moves={history} />
     </div>
