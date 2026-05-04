@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Chessboard } from 'react-chessboard';
-import { Square } from 'chess.js';
+import { Chess, Square } from 'chess.js';
 import { useChessGame } from '@/hooks/useChessGame';
 import { useEngine } from '@/hooks/useEngine';
 import { MoveHistory } from '@/components/board/MoveHistory';
@@ -84,6 +84,7 @@ export function ChessBoard({ aiLevel = 4, onPgnChange }: ChessBoardProps) {
       if (aiLevel <= 0 || outcome.turn !== 'b' || outcome.isGameOver) {
         return;
       }
+
       setMoveMessage('Ход ИИ...');
       const bestMove = await getBestMove(outcome.fen);
       if (bestMove) {
@@ -97,7 +98,19 @@ export function ChessBoard({ aiLevel = 4, onPgnChange }: ChessBoardProps) {
         return;
       }
 
-      setMoveMessage('ИИ не нашел ход в этой позиции. Попробуйте другой ход.');
+      // Fallback in browser if engine API returned null.
+      const local = new Chess(outcome.fen);
+      const legal = local.moves({ verbose: true });
+      if (legal.length > 0) {
+        const fallback = legal[Math.floor(Math.random() * legal.length)];
+        const moveResult = makeMove(fallback.from, fallback.to, fallback.promotion, outcome.fen);
+        if (moveResult) {
+          setMoveMessage('ИИ сделал fallback-ход.');
+          return;
+        }
+      }
+
+      setMoveMessage('ИИ временно недоступен. Сделайте следующий ход.');
     })();
 
     return true;
