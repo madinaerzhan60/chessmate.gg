@@ -18,12 +18,26 @@ export default function RoomPage() {
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [roomFull, setRoomFull] = useState(false);
+  const [boardWidth, setBoardWidth] = useState(560);
 
   const game = useMemo(() => new Chess(fen), [fen]);
 
   useEffect(() => {
     fenRef.current = fen;
   }, [fen]);
+
+  useEffect(() => {
+    const updateBoardWidth = () => {
+      const viewport = window.innerWidth;
+      const width = viewport >= 1280 ? 560 : viewport >= 1024 ? 520 : viewport >= 768 ? 500 : viewport - 32;
+      setBoardWidth(Math.max(280, width));
+    };
+
+    updateBoardWidth();
+    window.addEventListener('resize', updateBoardWidth);
+    return () => window.removeEventListener('resize', updateBoardWidth);
+  }, []);
 
   const inviteLink = useMemo(() => {
     if (typeof window === 'undefined') return `https://chessmate-gg.vercel.app/play/${params.roomId}`;
@@ -35,7 +49,14 @@ export default function RoomPage() {
       if (payload.roomId !== roomId) return;
       setPlayerColor(payload.yourColor);
       setPlayersInRoom(payload.players);
+      setRoomFull(false);
       setMessage(payload.yourColor === 'w' ? 'Вы белые. Делайте первый ход.' : 'Вы черные. Ждите ход белых.');
+    };
+
+    const onRoomFull = (payload: { roomId: string }) => {
+      if (payload.roomId !== roomId) return;
+      setRoomFull(true);
+      setMessage('Комната занята. В комнате уже 2 игрока.');
     };
 
     const onRoomPlayers = (payload: { roomId: string; players: number }) => {
@@ -66,11 +87,13 @@ export default function RoomPage() {
     socket.on('room_joined', onRoomJoined);
     socket.on('room_players', onRoomPlayers);
     socket.on('move', onRemoteMove);
+    socket.on('room_full', onRoomFull);
 
     return () => {
       socket.off('room_joined', onRoomJoined);
       socket.off('room_players', onRoomPlayers);
       socket.off('move', onRemoteMove);
+      socket.off('room_full', onRoomFull);
     };
   }, [socket, roomId]);
 
@@ -111,8 +134,9 @@ export default function RoomPage() {
   };
 
   const handleSquareClick = (square: string) => {
+    if (roomFull) return;
+
     if (!playerColor) {
-      setMessage('Подключение к комнате...');
       return;
     }
 
@@ -203,11 +227,12 @@ export default function RoomPage() {
         <p>Игроков в комнате: {playersInRoom}/2</p>
         <p>Ход: {game.turn() === 'w' ? 'Белых' : 'Черных'}</p>
       </div>
-      {!connected ? <div className="rounded-xl border border-[#ff0033]/40 bg-[#22080f] p-3 text-sm">Reconnecting...</div> : null}
-      <div className="neon-card p-3">
+      {!connected ? <div className="rounded-xl border border-[#ff0033]/40 bg-[#22080f] p-3 text-sm">Connecting to room...</div> : null}
+      <div className="neon-card mx-auto w-full max-w-[620px] p-3">
         <Chessboard
           id="room-board"
           position={fen}
+          boardWidth={boardWidth}
           boardOrientation={playerColor === 'b' ? 'black' : 'white'}
           onSquareClick={handleSquareClick}
           customDarkSquareStyle={{ backgroundColor: '#2b1216' }}

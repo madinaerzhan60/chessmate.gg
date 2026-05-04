@@ -1,27 +1,40 @@
 import { Server, Socket } from 'socket.io';
 
-const roomMembers = new Map<string, string[]>();
+type RoomPlayer = {
+  playerId: string;
+  socketId: string;
+  color: 'w' | 'b';
+};
 
-const getColorForIndex = (index: number): 'w' | 'b' => (index === 0 ? 'w' : 'b');
+const roomMembers = new Map<string, RoomPlayer[]>();
 
 export function registerGameRoom(io: Server, socket: Socket) {
-  socket.on('join_room', ({ roomId }) => {
+  socket.on('join_room', ({ roomId, playerId }) => {
     if (!roomId || typeof roomId !== 'string') return;
+    if (!playerId || typeof playerId !== 'string') return;
 
     const members = roomMembers.get(roomId) ?? [];
-    if (!members.includes(socket.id) && members.length < 2) {
-      members.push(socket.id);
-      roomMembers.set(roomId, members);
+    const existing = members.find((member) => member.playerId === playerId);
+
+    if (existing) {
+      existing.socketId = socket.id;
+    } else if (members.length < 2) {
+      const usedColors = new Set(members.map((member) => member.color));
+      const color: 'w' | 'b' = usedColors.has('w') ? 'b' : 'w';
+      members.push({ playerId, socketId: socket.id, color });
+    } else {
+      socket.emit('room_full', { roomId, players: members.length });
+      return;
     }
 
+    roomMembers.set(roomId, members);
     socket.join(roomId);
 
-    const playerIndex = (roomMembers.get(roomId) ?? []).indexOf(socket.id);
-    const yourColor = getColorForIndex(playerIndex < 0 ? 0 : playerIndex);
-    const players = roomMembers.get(roomId) ?? [];
+    const current = members.find((member) => member.playerId === playerId);
+    const yourColor = current?.color ?? 'w';
 
-    socket.emit('room_joined', { roomId, yourColor, players: players.length });
-    io.to(roomId).emit('room_players', { roomId, players: players.length });
+    socket.emit('room_joined', { roomId, yourColor, players: members.length });
+    io.to(roomId).emit('room_players', { roomId, players: members.length });
   });
 
   socket.on('move', (payload) => {
@@ -41,7 +54,7 @@ export function registerGameRoom(io: Server, socket: Socket) {
       const members = roomMembers.get(roomId);
       if (!members) return;
 
-      const filtered = members.filter((id) => id !== socket.id);
+      const filtered = members.filter((member) => member.socketId !== socket.id);
       if (filtered.length === 0) {
         roomMembers.delete(roomId);
       } else {
