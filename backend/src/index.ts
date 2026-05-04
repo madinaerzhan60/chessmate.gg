@@ -40,6 +40,7 @@ io.on('connection', (socket) => {
   registerMatchmaking(io, socket);
 });
 
+app.get('/', (_req, res) => res.json({ message: 'CHECKMATE.GG API v1', status: 'ok' }));
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
 server.listen(port, () => {
